@@ -13,8 +13,8 @@ float tempvalue = 0;
 // WiFi settings
 String ssid     = "Simulator Wifi";  // SSID to connect to
 String password = ""; // Our virtual wifi has no password (so dont do your banking stuff on this network)
-String host     = "api.thingspeak.com"; // Open Weather Map API
-const int httpPort   = 80
+String host     = "api.thingspeak.com"; // ThingSpeak API
+const int httpPort   = 80;
 
 // ThingSpeak API keys for moisture and temperature fields
 String moistureApiKey = "TGBLJ2RJ8D28AQTD";
@@ -22,10 +22,10 @@ String tempApiKey = "CQ2NZS9QKKO9ZKMN";
 String voltageApiKey = "0Y7PX0LJPPBPZ4L2";
 String pumpApiKey = "J882IERKRMQ3X6K1";
 
-String moistureUri = "/update?api_key=" + moistureApiKey + "&field1=";
-String tempUri = "/update?api_key=" + tempApiKey + "&field2=";
-String voltageUri = "/update?api_key=" + voltageApiKey + "&field3=";
-String pumpUri = "/update?api_key=" + pumpApiKey + "&field4=";
+String moistureUri = "/update?api_key=" + moistureApiKey;
+String tempUri = "/update?api_key=" + tempApiKey;
+String voltageUri = "/update?api_key=" + voltageApiKey;
+String pumpUri = "/update?api_key=" + pumpApiKey;
 
 void setupESP8266(void) {
   Serial.begin(115200);
@@ -43,7 +43,12 @@ void setupESP8266(void) {
 }
 
 void sendData(int data, String uri) {
-  String httpPacket = "GET " + uri + String(data) + " HTTP/1.1\r\nHost: " + host + "\r\n\r\n";
+  Serial.println("Entering sendData function");
+  
+  // Format the data as "fieldX=value"
+  String dataField = "&field1=" + String(data); // Adjust field number as needed
+
+  String httpPacket = "GET " + uri + dataField + " HTTP/1.1\r\nHost: " + host + "\r\n\r\n";
   int length = httpPacket.length();
 
   Serial.print("AT+CIPSEND=");
@@ -51,13 +56,19 @@ void sendData(int data, String uri) {
   delay(10);
 
   Serial.print(httpPacket);
+  Serial.println("Sent data: " + httpPacket);
   delay(10);
-  if (!Serial.find("SEND OK\r\n")) return;
+  
+  if (!Serial.find("SEND OK\r\n")) {
+    Serial.println("Error sending data");
+    return;
+  } else {
+    Serial.println("Data sent successfully");
+  }
 }
 
-void setup()
-{
-  Serial.begin(9600);
+void setup() {
+  Serial.begin(115200);  // Adjusted to match ESP8266 baud rate
   pinMode(pump, OUTPUT);
   pinMode(moisturepin, INPUT);
   pinMode(temppin, INPUT);
@@ -73,8 +84,7 @@ void setup()
   setupESP8266();
 }
 
-void loop()
-{
+void loop() {
   tempvalue = analogRead(temppin);
   int temp = (tempvalue - 20) * 3.04;
   int celsius = map(temp, 0, 1023, -40, 125);
@@ -126,8 +136,7 @@ void loop()
   delay(2000);
 
   // Your existing moisture control logic
-  if (moisturevalue <= 60)
-  {
+  if (moisturevalue <= 60) {
     digitalWrite(pump, HIGH);
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -136,9 +145,7 @@ void loop()
     lcd.setCursor(0, 1);
     lcd.print("Pump: ON");
     Serial.println("Soil Humidity = " + String(moisturevalue) + "% - Pump ON");
-  }
-  else
-  {
+  } else {
     digitalWrite(pump, LOW);
     lcd.clear();
     lcd.setCursor(0, 0);

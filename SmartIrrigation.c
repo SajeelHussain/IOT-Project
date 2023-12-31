@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(32, 16, 2);
+LiquidCrystal_I2C lcd(32, 16, 2); // Adjust the I2C address if needed
 
 #define moisturepin A0
 #define temppin A1
@@ -14,14 +14,18 @@ float tempvalue = 0;
 String ssid     = "Simulator Wifi";  // SSID to connect to
 String password = ""; // Our virtual wifi has no password (so dont do your banking stuff on this network)
 String host     = "api.thingspeak.com"; // Open Weather Map API
-const int httpPort   = 80;
+const int httpPort   = 80
 
 // ThingSpeak API keys for moisture and temperature fields
 String moistureApiKey = "TGBLJ2RJ8D28AQTD";
 String tempApiKey = "CQ2NZS9QKKO9ZKMN";
+String voltageApiKey = "0Y7PX0LJPPBPZ4L2";
+String pumpApiKey = "J882IERKRMQ3X6K1";
 
 String moistureUri = "/update?api_key=" + moistureApiKey + "&field1=";
-String tempUri = "/update?api_key=" + tempApiKey + "&field1=";
+String tempUri = "/update?api_key=" + tempApiKey + "&field2=";
+String voltageUri = "/update?api_key=" + voltageApiKey + "&field3=";
+String pumpUri = "/update?api_key=" + pumpApiKey + "&field4=";
 
 void setupESP8266(void) {
   Serial.begin(115200);
@@ -97,6 +101,31 @@ void loop()
 
   delay(2000);
 
+  // Read voltage and pump state
+  int voltage = analogRead(A2); // Assuming the voltage is connected to A2
+  int pumpState = digitalRead(pump);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Voltage: ");
+  lcd.print(voltage);
+
+  // Send voltage data to ThingSpeak
+  sendData(voltage, voltageUri);
+
+  delay(2000);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Pump State: ");
+  lcd.print(pumpState);
+
+  // Send pump state data to ThingSpeak
+  sendData(pumpState, pumpUri);
+
+  delay(2000);
+
+  // Your existing moisture control logic
   if (moisturevalue <= 60)
   {
     digitalWrite(pump, HIGH);
